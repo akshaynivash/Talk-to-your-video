@@ -50,22 +50,31 @@ Redis is the Celery broker/result backend (not pictured above).
 
 ## Project structure
 
+The core pipeline logic is an installable library (`talk_to_your_video/`), independent of any web framework or task queue. `app/` and `worker/` are thin services that import from it — either can be swapped or reused elsewhere without dragging the other along.
+
 ```
-app/       FastAPI service — HTTP API (upload, status, query)
-worker/    Celery worker — ingestion pipeline (audio -> transcript -> extraction -> embeddings -> graph write)
-agent/     LangGraph agent — the query-time StateGraph (router, Cypher tool, vector search tool, synthesis)
-graph/     Neo4j driver client + Cypher migrations (constraints, vector index)
-common/    Shared config, Pydantic models, logging used by app/worker/agent
+talk_to_your_video/   Installable library — the reusable core (pip install -e . pulls in just this)
+  config.py             Settings + lazy get_settings() (no import-time side effects)
+  models.py             Shared Pydantic models (Segment, Citation, QueryResponse, VideoStatus)
+  ingestion/            Pure ingestion steps + run_pipeline() orchestration (audio -> transcript ->
+                         extraction -> embeddings -> graph write) — no Celery decorators here
+  agent/                LangGraph agent (router, Cypher tool, vector search tool, synthesis)
+  graph/                Neo4j driver client + Cypher migrations (constraints, vector index)
+
+app/       FastAPI service — HTTP API (upload, status, query), calls into talk_to_your_video
+worker/    Celery worker — wraps talk_to_your_video.ingestion.run_pipeline() as a task
 charts/    Helm chart for Kubernetes deployment
 scripts/   Dev/deploy helper scripts
 tests/     Unit and integration tests
 docs/      Implementation plan (PLAN.md) and phase progress checklist (PROGRESS.md)
 ```
 
+Installing just the core (no FastAPI/Celery): `pip install .` gives you `agent`, `graph`, and `ingestion`. Add `.[api]` and/or `.[worker]` extras for the FastAPI/Celery pieces.
+
 ## Local development
 
 ```bash
-uv sync
+uv sync --all-extras
 cp .env.example .env
 docker compose up -d
 ```
