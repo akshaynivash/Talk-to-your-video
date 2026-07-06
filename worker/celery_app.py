@@ -1,6 +1,8 @@
 from celery import Celery
 
-from common.config import settings
+from talk_to_your_video.config import get_settings
+
+settings = get_settings()
 
 celery_app = Celery(
     "talk_to_your_video",

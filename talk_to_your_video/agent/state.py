@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from common.models import Citation
+from talk_to_your_video.models import Citation
 
 
 class AgentState(TypedDict):

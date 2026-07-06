@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from common.models import Segment
+from talk_to_your_video.models import Segment
 
 
 class SegmentExtraction(BaseModel):

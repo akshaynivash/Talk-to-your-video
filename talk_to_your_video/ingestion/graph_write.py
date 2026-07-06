@@ -1,5 +1,5 @@
-from common.models import Segment
-from worker.tasks.extract_entities import SegmentExtraction
+from talk_to_your_video.models import Segment
+from talk_to_your_video.ingestion.extract_entities import SegmentExtraction
 
 
 def write_video_graph(
