@@ -101,3 +101,7 @@ This project is under active build-out. See [`docs/PLAN.md`](docs/PLAN.md) for t
 ## Demo
 
 _Screenshots / recording placeholder — added once the end-to-end flow is working._
+
+## License
+
+All rights reserved. This repository is public for portfolio/demonstration purposes only — see [`LICENSE`](LICENSE). No permission is granted to copy, modify, or reuse this code.
