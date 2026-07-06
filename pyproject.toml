@@ -1,0 +1,39 @@
+[project]
+name = "talk-to-your-video"
+version = "0.1.0"
+description = "Natural language video Q&A: Whisper transcription -> Neo4j knowledge graph -> LangGraph agent with timestamp-grounded answers"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.12",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "celery[redis]>=5.4",
+    "redis>=5.2",
+    "neo4j>=5.26",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "langchain-ollama>=0.2",
+    "ollama>=0.4",
+    "faster-whisper>=1.1",
+    "langsmith>=0.1",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "python-dotenv>=1.0",
+    "instructor>=1.6",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.7",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

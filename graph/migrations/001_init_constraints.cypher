@@ -1,0 +1,8 @@
+CREATE CONSTRAINT video_id_unique IF NOT EXISTS
+FOR (v:Video) REQUIRE v.id IS UNIQUE;
+
+CREATE CONSTRAINT entity_name_unique IF NOT EXISTS
+FOR (e:Entity) REQUIRE e.name IS UNIQUE;
+
+CREATE CONSTRAINT topic_name_unique IF NOT EXISTS
+FOR (t:Topic) REQUIRE t.name IS UNIQUE;

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+.pytest_cache/
+.ruff_cache/
+
+tests/fixtures/*.mp4
+tests/fixtures/*.wav
+!tests/fixtures/.gitkeep
+
+.DS_Store
