@@ -1,7 +1,7 @@
 .PHONY: sync lint test up down
 
 sync:
-	uv sync
+	uv sync --all-extras
 
 lint:
 	uv run ruff check .

@@ -2187,10 +2187,8 @@ wheels = [
 [[package]]
 name = "talk-to-your-video"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
-    { name = "celery", extra = ["redis"] },
-    { name = "fastapi" },
     { name = "faster-whisper" },
     { name = "instructor" },
     { name = "langchain-core" },
@@ -2199,13 +2197,21 @@ dependencies = [
     { name = "langsmith" },
     { name = "neo4j" },
     { name = "ollama" },
-    { name = "prometheus-fastapi-instrumentator" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+api = [
+    { name = "fastapi" },
+    { name = "prometheus-fastapi-instrumentator" },
     { name = "python-multipart" },
-    { name = "redis" },
     { name = "uvicorn", extra = ["standard"] },
+]
+worker = [
+    { name = "celery", extra = ["redis"] },
+    { name = "redis" },
 ]
 
 [package.dev-dependencies]
@@ -2218,8 +2224,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "celery", extras = ["redis"], specifier = ">=5.4" },
-    { name = "fastapi", specifier = ">=0.115" },
+    { name = "celery", extras = ["redis"], marker = "extra == 'worker'", specifier = ">=5.4" },
+    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115" },
     { name = "faster-whisper", specifier = ">=1.1" },
     { name = "instructor", specifier = ">=1.6" },
     { name = "langchain-core", specifier = ">=0.3" },
@@ -2228,14 +2234,15 @@ requires-dist = [
     { name = "langsmith", specifier = ">=0.1" },
     { name = "neo4j", specifier = ">=5.26" },
     { name = "ollama", specifier = ">=0.4" },
-    { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0" },
+    { name = "prometheus-fastapi-instrumentator", marker = "extra == 'api'", specifier = ">=7.0" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "python-multipart", specifier = ">=0.0.12" },
-    { name = "redis", specifier = ">=5.2" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
+    { name = "python-multipart", marker = "extra == 'api'", specifier = ">=0.0.12" },
+    { name = "redis", marker = "extra == 'worker'", specifier = ">=5.2" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'api'", specifier = ">=0.32" },
 ]
+provides-extras = ["api", "worker"]
 
 [package.metadata.requires-dev]
 dev = [
