@@ -1,10 +1,10 @@
 from langgraph.graph import END, StateGraph
 
-from agent.nodes.cypher_tool import run_cypher
-from agent.nodes.router import route
-from agent.nodes.synthesize import synthesize
-from agent.nodes.vector_search_tool import run_vector_search
-from agent.state import AgentState
+from talk_to_your_video.agent.nodes.cypher_tool import run_cypher
+from talk_to_your_video.agent.nodes.router import route
+from talk_to_your_video.agent.nodes.synthesize import synthesize
+from talk_to_your_video.agent.nodes.vector_search_tool import run_vector_search
+from talk_to_your_video.agent.state import AgentState
 
 
 def build_graph():

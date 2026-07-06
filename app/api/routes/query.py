@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from common.models import QueryResponse
+from talk_to_your_video.models import QueryResponse
 
 router = APIRouter()
 

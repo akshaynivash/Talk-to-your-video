@@ -4,13 +4,8 @@ version = "0.1.0"
 description = "Natural language video Q&A: Whisper transcription -> Neo4j knowledge graph -> LangGraph agent with timestamp-grounded answers"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.32",
-    "python-multipart>=0.0.12",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
-    "celery[redis]>=5.4",
-    "redis>=5.2",
     "neo4j>=5.26",
     "langgraph>=0.2",
     "langchain-core>=0.3",
@@ -18,9 +13,20 @@ dependencies = [
     "ollama>=0.4",
     "faster-whisper>=1.1",
     "langsmith>=0.1",
-    "prometheus-fastapi-instrumentator>=7.0",
-    "python-dotenv>=1.0",
     "instructor>=1.6",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.12",
+    "prometheus-fastapi-instrumentator>=7.0",
+]
+worker = [
+    "celery[redis]>=5.4",
+    "redis>=5.2",
 ]
 
 [dependency-groups]
@@ -31,8 +37,12 @@ dev = [
     "httpx>=0.27",
 ]
 
-[tool.uv]
-package = false
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["talk_to_your_video"]
 
 [tool.ruff]
 line-length = 100
