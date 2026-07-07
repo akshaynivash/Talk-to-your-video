@@ -6,8 +6,8 @@ Tracks phase completion so a new session can resume without re-deriving context.
 - [x] Phase 1 — Repo scaffold + README
 - [~] Phase 2 — docker-compose local dev loop (compose file written, not yet verified end-to-end — Docker Desktop had a WSL bootstrap crash during this session)
 - [~] Phase 3 — Ingestion pipeline (real logic implemented + verified manually against real ffmpeg/faster-whisper/Ollama, now including visual frame analysis — see below; `graph_write` implemented but not yet verified against a live Neo4j — still blocked on Docker)
-- [ ] Phase 4 — Query agent / LangGraph
-- [ ] Phase 5 — FastAPI layer (full implementation, replacing stubs)
+- [x] Phase 4 — Query agent / LangGraph (real router/cypher_tool/vector_search_tool/synthesize nodes; caught and fixed a real LangGraph hybrid-fan-out state bug during testing — see notes)
+- [x] Phase 5 — FastAPI layer (real upload/status/segments/events(SSE)/query/ready endpoints, replacing stubs; not yet verified live end-to-end — still blocked on Docker/Neo4j)
 - [ ] Phase 6 — Containerization (Dockerfiles hardened/finalized)
 - [ ] Phase 7 — Kubernetes / Helm
 - [x] Phase 9 — CI/CD (GitHub Actions) — done out of order: `ci.yml` (lint+test on PRs to main) and `docker-publish.yml` (GHCR build+push on merge to main), merged via PR #1
@@ -34,3 +34,16 @@ Tracks phase completion so a new session can resume without re-deriving context.
   - **Real bug caught by live-testing**: originally planned to get video duration from faster-whisper's `TranscriptionInfo.duration` — but that's the *audio* stream's duration, not the video's. A video with no audio track (or a shorter audio track than the video) would silently under-cover or crash. Fixed by getting duration from `ffprobe` directly on the video file (`extract_audio.get_video_duration`), fully decoupled from whether there's audio at all; `extract_audio()` now returns `None` (not a crash) when there's no audio stream.
   - **Environment gotcha**: `moondream` crashes Ollama 0.5.11 with `GGML_ASSERT(i01 >= 0 && i01 < ne01) failed` in the CPU CLIP encoder (llama.cpp compatibility bug) — required `winget upgrade Ollama.Ollama` to 0.31.1. If vision analysis crashes Ollama, check the version first.
   - `docker-compose.yml`'s `ollama-init` now also pulls `moondream`.
+- **Phase 4 (LangGraph agent) implementation notes:**
+  - `agent/llm.py` gives `router`/`cypher_tool`/`synthesize` a shared lazy instructor-wrapped Ollama client (same pattern as `graph/client.py::get_driver()`).
+  - `cypher_tool` generates freeform Cypher (not fixed templates) guarded by a keyword blocklist + Neo4j's read-only transaction mode, retrying up to 3 times with the failure fed back into the prompt; degrades to empty results rather than failing the whole query.
+  - `vector_search_tool` over-fetches (`k=20`) from the vector index then filters/joins to the target video, since Neo4j Community edition has no native pre-filtered vector search.
+  - `synthesize` post-validates citations against retrieved segments to avoid hallucinated timestamps.
+  - **Real bug caught by the test suite**: every node originally returned `{**state, ...}` — the *entire* state — instead of a partial update. That's fine sequentially, but the hybrid route fans out to `cypher_tool` and `vector_search_tool` concurrently, and LangGraph's default channels reject concurrent writes to the same key from two branches (`InvalidUpdateError`), even when the value is identical. Every real hybrid query would have crashed. Fixed by having all four nodes return only the keys they change.
+- **Phase 5 (FastAPI) implementation notes:**
+  - `graph/video_status.py` (`create_video`/`set_video_status`/`get_video_status`) makes a `Video` node trackable from upload time, not just at the end of ingestion. `create_video` uses `ON CREATE SET` so re-uploads don't stomp an in-progress status.
+  - `ingestion/pipeline.py::run_pipeline` takes an optional `on_stage` callback fired at each stage transition — kept optional so the library has no hard Neo4j dependency; `worker/pipeline.py` supplies the real callback and sets `FAILED` on any exception.
+  - `GET /videos/{id}/events` is a simple polling SSE endpoint (~1s against Neo4j via `asyncio.to_thread`), not push-based pub/sub — fine at portfolio/demo scale, explicitly not built to scale to many concurrent subscribers.
+  - `POST /query` lazily caches one compiled LangGraph instance at the route-module level (not inside `build_graph()`, so tests can still call that fresh) and runs `graph.invoke` via `asyncio.to_thread` so it doesn't block the event loop.
+  - `GET /ready` does real reachability checks (Neo4j `verify_connectivity`, Redis `ping`, Ollama `.list()`), returning 503 with a per-dependency breakdown on failure.
+  - Two test files were both named `test_segments.py` (one for `graph/segments.py`, one for the API route) — pytest can't collect same-basename modules without `__init__.py` in this project's test layout; the API one is `test_segments_route.py`.
