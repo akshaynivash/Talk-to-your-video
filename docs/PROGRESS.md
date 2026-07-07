@@ -8,7 +8,8 @@ Tracks phase completion so a new session can resume without re-deriving context.
 - [~] Phase 3 — Ingestion pipeline (real logic implemented + verified manually against real ffmpeg/faster-whisper/Ollama, now including visual frame analysis — see below; `graph_write` implemented but not yet verified against a live Neo4j — still blocked on Docker)
 - [x] Phase 4 — Query agent / LangGraph (real router/cypher_tool/vector_search_tool/synthesize nodes; caught and fixed a real LangGraph hybrid-fan-out state bug during testing — see notes)
 - [x] Phase 5 — FastAPI layer (real upload/status/segments/events(SSE)/query/ready endpoints, replacing stubs; not yet verified live end-to-end — still blocked on Docker/Neo4j)
-- [ ] Phase 6 — Containerization (Dockerfiles hardened/finalized)
+- [x] Phase 5.5 — Frontend (React + Vite + Tailwind SPA — upload, SSE progress, segment timeline, chat — not in the original phase list, added when the user asked for a UI)
+- [ ] Phase 6 — Containerization (Dockerfiles hardened/finalized; frontend container not yet accounted for)
 - [ ] Phase 7 — Kubernetes / Helm
 - [x] Phase 9 — CI/CD (GitHub Actions) — done out of order: `ci.yml` (lint+test on PRs to main) and `docker-publish.yml` (GHCR build+push on merge to main), merged via PR #1
 - [ ] Phase 8 — Observability (Prometheus/Grafana/LangSmith)
@@ -47,3 +48,10 @@ Tracks phase completion so a new session can resume without re-deriving context.
   - `POST /query` lazily caches one compiled LangGraph instance at the route-module level (not inside `build_graph()`, so tests can still call that fresh) and runs `graph.invoke` via `asyncio.to_thread` so it doesn't block the event loop.
   - `GET /ready` does real reachability checks (Neo4j `verify_connectivity`, Redis `ping`, Ollama `.list()`), returning 503 with a per-dependency breakdown on failure.
   - Two test files were both named `test_segments.py` (one for `graph/segments.py`, one for the API route) — pytest can't collect same-basename modules without `__init__.py` in this project's test layout; the API one is `test_segments_route.py`.
+- **Phase 5.5 (Frontend) implementation notes:**
+  - **Node 18.20.2 on this machine can't run the latest tooling** — `create-vite@latest`, `vitest@4`, and `jsdom@29` all fail with `SyntaxError: The requested module 'node:util' does not provide an export named 'styleText'` (that export needs Node 20+). Pinned to `npm create vite@5`, `vitest@1`, `jsdom@24` instead — all confirmed working. If bumping any of these later, check the target Node version first.
+  - Tailwind v3 (not v4) for the same Node-18 safety margin.
+  - Black/silver theme: `tailwind.config.js` defines `base` (near-black surfaces, 950→600, avoiding pure `#000`), `silver` (text/border range), and one `accent` (blue `#60a5fa`) for interactive states — verified the custom palette actually compiled into the built CSS output (`bg-base-950` class name and `rgb(96,165,250)` both present), not just that the build didn't error.
+  - Vite dev proxy (`vite.config.ts`) forwards `/api/*` → `http://localhost:8000/*`, stripping the prefix — keeps the backend's existing unprefixed routes unchanged.
+  - 18 component/API-client tests (Vitest + RTL), mocking `fetch`/`EventSource` — no backend needed, same "mock the external dependency" convention as the Python suite.
+  - Not yet done: production serving story (nginx-container vs FastAPI `StaticFiles`) — deferred to Phase 6/7. Full real upload→chat flow still blocked on Docker/Neo4j, same as everything else.

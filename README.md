@@ -1,48 +1,50 @@
 # Talk to Your Video
 
-Ask natural-language questions about a video and get back answers grounded with exact timestamps. Upload a video, it's transcribed and turned into a knowledge graph, and a LangGraph agent answers your questions by querying that graph.
+Ask natural-language questions about a video and get back answers grounded with exact timestamps — about what's **said** and what's **shown**. Upload a video, it's transcribed *and* visually analyzed frame-by-frame, both feed the same knowledge graph, and a LangGraph agent answers your questions by querying it. Because it understands the video visually, it still works on clips with little or no narration — not just a transcript-Q&A tool.
 
 ## Architecture
 
 ```
-                 ┌─────────────┐
-   upload        │   FastAPI   │  query
-  ───────────────►             ◄───────────────
-                 └──────┬──────┘
-                        │ enqueue
-                        ▼
-                 ┌─────────────┐        ┌──────────────┐
-                 │   Celery    │───────►│    Ollama    │
-                 │   worker    │        │ (llama3.1:8b │
-                 │             │◄───────│ + embeddings)│
-                 └──────┬──────┘        └──────────────┘
-                        │ 1. ffmpeg extract audio
-                        │ 2. faster-whisper transcribe
-                        │ 3. Ollama entity/topic extraction
-                        │ 4. embed segments
-                        ▼
-                 ┌─────────────┐
-                 │    Neo4j    │  (:Video)-[:HAS_SEGMENT]->(:Segment)
-                 │             │  (:Segment)-[:MENTIONS]->(:Entity|:Topic)
-                 └──────▲──────┘  + native vector index on Segment.embedding
-                        │
-                        │ Cypher + vector search
-                 ┌──────┴──────┐
-                 │  LangGraph  │  router -> cypher_tool / vector_search_tool -> synthesize
-                 │    agent    │  (traced via LangSmith)
-                 └─────────────┘
+┌─────────────┐   upload / query / status / segments / SSE progress   ┌─────────────┐
+│  React SPA  │ ─────────────────────────────────────────────────────►│   FastAPI   │
+└─────────────┘                                                       └──────┬──────┘
+                                                                      enqueue │  ▲
+                                                                              ▼  │ query (sync)
+                                                                       ┌─────────────┐
+                                                                       │   Celery    │
+                                                                       │   worker    │
+                                                                       └──────┬──────┘
+      Per ~8s window, spanning the WHOLE video (not just speech):            │
+      1. ffmpeg extract audio (or None if no audio track)                   │
+      2. faster-whisper transcribe                                          │
+      3. ffmpeg grab a frame -> Ollama moondream describes it                │
+      4. Ollama llama3.1:8b entity/topic extraction (transcript + visual)    │
+      5. embed the combined transcript+visual text (nomic-embed-text)        │
+                                                                              ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                    Neo4j                                   │
+│   (:Video)-[:HAS_SEGMENT]->(:Segment {text, visual_description, embedding})│
+│   (:Segment)-[:MENTIONS]->(:Entity|:Topic)   + native vector index         │
+└──────────────────────────────────────┬─────────────────────────────────────┘
+                                        │ Cypher + vector search
+                                 ┌─────────────┐
+                                 │  LangGraph  │  router -> cypher_tool + vector_search_tool
+                                 │    agent    │  (parallel on hybrid) -> synthesize
+                                 └─────────────┘  (traced via LangSmith)
 ```
 
-Redis is the Celery broker/result backend (not pictured above).
+Redis is the Celery broker/result backend (not pictured above). FastAPI calls the LangGraph agent directly (synchronously) for `/query` — no queueing needed since it only takes seconds.
 
 ## Tech stack
 
 - **API:** FastAPI
 - **Async ingestion:** Celery + Redis
 - **Transcription:** faster-whisper
+- **Vision:** Ollama `moondream` (per-segment frame analysis — objects/actions on screen, not just speech)
 - **Knowledge graph:** Neo4j (graph relations + native vector index for semantic search)
 - **Agent orchestration:** LangGraph
-- **LLM/embeddings:** Ollama, self-hosted (default `llama3.1:8b` + `nomic-embed-text`) — no external API costs
+- **LLM/embeddings:** Ollama, self-hosted (`llama3.1:8b` + `moondream` + `nomic-embed-text`) — no external API costs
+- **Frontend:** React + Vite + Tailwind
 - **Tracing:** LangSmith
 - **Deployment:** Kubernetes (Kind) via Helm, NGINX ingress
 - **Observability:** Prometheus + Grafana
@@ -55,14 +57,16 @@ The core pipeline logic is an installable library (`talk_to_your_video/`), indep
 ```
 talk_to_your_video/   Installable library — the reusable core (pip install -e . pulls in just this)
   config.py             Settings + lazy get_settings() (no import-time side effects)
-  models.py             Shared Pydantic models (Segment, Citation, QueryResponse, VideoStatus)
-  ingestion/            Pure ingestion steps + run_pipeline() orchestration (audio -> transcript ->
-                         extraction -> embeddings -> graph write) — no Celery decorators here
+  models.py             Shared Pydantic models (Segment, SegmentDetail, Citation, QueryResponse, VideoStatus)
+  ingestion/            Ingestion steps + run_pipeline() orchestration: audio extraction, transcription,
+                         fixed-window segmentation, frame extraction + vision analysis (moondream),
+                         entity/topic extraction (transcript + visual, merged), embeddings, graph write
   agent/                LangGraph agent (router, Cypher tool, vector search tool, synthesis)
-  graph/                Neo4j driver client + Cypher migrations (constraints, vector index)
+  graph/                Neo4j driver client, video status tracking, segment listing, Cypher migrations
 
-app/       FastAPI service — HTTP API (upload, status, query), calls into talk_to_your_video
+app/       FastAPI service — upload/status/segments/events(SSE)/query/health, calls into talk_to_your_video
 worker/    Celery worker — wraps talk_to_your_video.ingestion.run_pipeline() as a task
+frontend/  React + Vite + Tailwind SPA — upload, live progress, segment timeline, chatbot
 charts/    Helm chart for Kubernetes deployment
 scripts/   Dev/deploy helper scripts
 tests/     Unit and integration tests
@@ -82,8 +86,10 @@ docker compose up -d
 Then:
 
 ```bash
-curl -F file=@tests/fixtures/sample.mp4 localhost:8000/videos
+curl -F file=@tests/fixtures/sample.mp4 -F title="My Video" localhost:8000/videos
 curl localhost:8000/videos/<video_id>/status
+curl localhost:8000/videos/<video_id>/segments
+curl -N localhost:8000/videos/<video_id>/events   # SSE progress stream
 curl -X POST localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"video_id": "<video_id>", "question": "What does the speaker say about X?"}'
@@ -91,7 +97,17 @@ curl -X POST localhost:8000/query \
 
 Neo4j Browser is available at `localhost:7474` to inspect the graph directly.
 
-> Local dev loop (docker-compose wiring) lands in a later build phase — see `docs/PROGRESS.md` for current status.
+Frontend dev server (separate terminal):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Vite's dev server proxies `/api/*` to the FastAPI backend on `localhost:8000` — see `frontend/vite.config.ts`.
+
+> Local dev loop (docker-compose wiring) not yet verified end-to-end — see `docs/PROGRESS.md` for current status.
 
 ## Kubernetes deployment
 
