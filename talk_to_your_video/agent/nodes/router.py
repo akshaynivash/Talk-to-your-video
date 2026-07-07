@@ -10,7 +10,7 @@ class RouteDecision(BaseModel):
     route: Route
 
 
-def route(state: AgentState) -> AgentState:
+def route(state: AgentState) -> dict:
     settings = get_settings()
     client = get_instructor_client()
     decision = client.chat.completions.create(
@@ -22,4 +22,4 @@ def route(state: AgentState) -> AgentState:
             {"role": "user", "content": state["question"]},
         ],
     )
-    return {**state, "route": decision.route}
+    return {"route": decision.route}

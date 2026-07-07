@@ -11,15 +11,17 @@ def _format_context(state: AgentState) -> str:
         parts.append(f"Graph query results: {state['cypher_results']}")
     if state["vector_results"]:
         segments = "\n".join(
-            f"[{r['start']:.2f}-{r['end']:.2f}] {r['text']}" for r in state["vector_results"]
+            f"[{r['start']:.2f}-{r['end']:.2f}] spoken: {r['text'] or '(none)'} | "
+            f"visual: {r.get('visual_description') or '(none)'}"
+            for r in state["vector_results"]
         )
-        parts.append(f"Relevant transcript segments:\n{segments}")
+        parts.append(f"Relevant segments (spoken and visual content):\n{segments}")
     return "\n\n".join(parts)
 
 
-def synthesize(state: AgentState) -> AgentState:
+def synthesize(state: AgentState) -> dict:
     if not state["cypher_results"] and not state["vector_results"]:
-        return {**state, "answer": NO_CONTEXT_ANSWER, "citations": []}
+        return {"answer": NO_CONTEXT_ANSWER, "citations": []}
 
     settings = get_settings()
     client = get_instructor_client()
@@ -39,4 +41,4 @@ def synthesize(state: AgentState) -> AgentState:
     valid_segments = {(r["start"], r["end"]) for r in state["vector_results"]}
     citations = [c for c in response.citations if (c.start, c.end) in valid_segments]
 
-    return {**state, "answer": response.answer, "citations": citations}
+    return {"answer": response.answer, "citations": citations}

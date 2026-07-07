@@ -43,7 +43,7 @@ def _generate_cypher(question: str, previous_error: str | None) -> str:
     return result.cypher
 
 
-def run_cypher(state: AgentState) -> AgentState:
+def run_cypher(state: AgentState) -> dict:
     video_id = state["video_id"]
     question = state["question"]
     previous_error: str | None = None
@@ -63,7 +63,7 @@ def run_cypher(state: AgentState) -> AgentState:
                 records = session.execute_read(
                     lambda tx: [r.data() for r in tx.run(cypher, video_id=video_id)]
                 )
-            return {**state, "cypher_query": cypher, "cypher_results": records}
+            return {"cypher_query": cypher, "cypher_results": records}
         except Neo4jError as exc:
             previous_error = str(exc)
             logger.warning("Generated Cypher failed to execute: %s (%s)", cypher, exc)
@@ -71,4 +71,4 @@ def run_cypher(state: AgentState) -> AgentState:
     logger.warning(
         "Exhausted %d attempts generating valid Cypher for question: %s", _MAX_ATTEMPTS, question
     )
-    return {**state, "cypher_query": cypher, "cypher_results": []}
+    return {"cypher_query": cypher, "cypher_results": []}

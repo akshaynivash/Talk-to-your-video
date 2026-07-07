@@ -8,13 +8,14 @@ _TOP_N = 5
 _VECTOR_SEARCH_QUERY = """
 CALL db.index.vector.queryNodes('segment_embedding', $k, $embedding) YIELD node, score
 MATCH (v:Video {id: $video_id})-[:HAS_SEGMENT]->(node)
-RETURN node.start AS start, node.end AS end, node.text AS text, score
+RETURN node.start AS start, node.end AS end, node.text AS text,
+       node.visual_description AS visual_description, score
 ORDER BY score DESC
 LIMIT $top_n
 """
 
 
-def run_vector_search(state: AgentState) -> AgentState:
+def run_vector_search(state: AgentState) -> dict:
     embedding = embed(state["question"])
     driver = get_driver()
     with driver.session() as session:
@@ -30,4 +31,4 @@ def run_vector_search(state: AgentState) -> AgentState:
                 )
             ]
         )
-    return {**state, "vector_results": records}
+    return {"vector_results": records}
