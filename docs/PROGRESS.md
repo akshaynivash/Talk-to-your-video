@@ -5,7 +5,7 @@ Tracks phase completion so a new session can resume without re-deriving context.
 - [x] Phase 0 — Prerequisites (`uv`, `kind` installed)
 - [x] Phase 1 — Repo scaffold + README
 - [~] Phase 2 — docker-compose local dev loop (compose file written, not yet verified end-to-end — Docker Desktop had a WSL bootstrap crash during this session)
-- [~] Phase 3 — Ingestion pipeline (real logic implemented + verified manually against real ffmpeg/faster-whisper/Ollama; `graph_write` implemented but not yet verified against a live Neo4j — still blocked on Docker)
+- [~] Phase 3 — Ingestion pipeline (real logic implemented + verified manually against real ffmpeg/faster-whisper/Ollama, now including visual frame analysis — see below; `graph_write` implemented but not yet verified against a live Neo4j — still blocked on Docker)
 - [ ] Phase 4 — Query agent / LangGraph
 - [ ] Phase 5 — FastAPI layer (full implementation, replacing stubs)
 - [ ] Phase 6 — Containerization (Dockerfiles hardened/finalized)
@@ -30,3 +30,7 @@ Tracks phase completion so a new session can resume without re-deriving context.
   - `graph_write` uses `FOREACH` (not a second `UNWIND`) to merge Entity/Topic nodes per segment — avoids an easy-to-miss cartesian-product bug where a second `UNWIND` after the first would re-run once per entity.
   - All ingestion unit tests (`tests/unit/ingestion/`) mock ffmpeg/Whisper/Ollama/Neo4j — CI never needs real models or a live DB pull, keeping it fast.
   - Local dev machine now also has `ffmpeg` and Ollama models `llama3.1:8b` + `nomic-embed-text` pulled (in addition to pre-existing `mistral`/`phi`/`llama2`).
+- **Visual ingestion (core differentiator, added after Phase 3 initially landed):** the project isn't just transcript Q&A — videos are also understood visually, so it still works on videos with little/no speech. Segmentation changed from Whisper's speech chunks to fixed ~8s time windows (`Settings.segment_window_seconds`) spanning the whole video; each window gets a representative frame (`ingestion/extract_frame.py`, ffmpeg) analyzed by Ollama's `moondream` vision model (`ingestion/analyze_frame.py`, `Settings.ollama_vision_model`). Entities/topics from transcript text and visual description both merge into the same `(:Entity)`/`(:Topic)` graph space (`merge_extractions` in `extract_entities.py`), and segment embeddings combine both texts so semantic search works even for silent segments. `Segment` gained `visual_description: str | None`.
+  - **Real bug caught by live-testing**: originally planned to get video duration from faster-whisper's `TranscriptionInfo.duration` — but that's the *audio* stream's duration, not the video's. A video with no audio track (or a shorter audio track than the video) would silently under-cover or crash. Fixed by getting duration from `ffprobe` directly on the video file (`extract_audio.get_video_duration`), fully decoupled from whether there's audio at all; `extract_audio()` now returns `None` (not a crash) when there's no audio stream.
+  - **Environment gotcha**: `moondream` crashes Ollama 0.5.11 with `GGML_ASSERT(i01 >= 0 && i01 < ne01) failed` in the CPU CLIP encoder (llama.cpp compatibility bug) — required `winget upgrade Ollama.Ollama` to 0.31.1. If vision analysis crashes Ollama, check the version first.
+  - `docker-compose.yml`'s `ollama-init` now also pulls `moondream`.
