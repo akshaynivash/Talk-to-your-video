@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from talk_to_your_video.ingestion.extract_entities import SegmentExtraction
 from talk_to_your_video.ingestion.pipeline import run_pipeline
-from talk_to_your_video.models import Segment
+from talk_to_your_video.models import Segment, VideoStatus
 
 
 def test_run_pipeline_merges_transcript_and_visual_extraction():
@@ -80,3 +80,30 @@ def test_run_pipeline_skips_transcript_extraction_for_silent_segment():
     merged_extraction = m_write.call_args.args[2][0]
     assert merged_extraction.entities == ["C"]
     assert merged_extraction.topics == ["D"]
+
+
+def test_run_pipeline_reports_stages_in_order():
+    segments = [Segment(start=0.0, end=8.0, text="hello")]
+    extraction = SegmentExtraction(entities=[], topics=[])
+    stages: list[VideoStatus] = []
+
+    with (
+        patch("talk_to_your_video.ingestion.pipeline.get_video_duration", return_value=8.0),
+        patch("talk_to_your_video.ingestion.pipeline.extract_audio", return_value="audio.wav"),
+        patch("talk_to_your_video.ingestion.pipeline.transcribe", return_value=segments),
+        patch("talk_to_your_video.ingestion.pipeline.segment", return_value=segments),
+        patch("talk_to_your_video.ingestion.pipeline.extract_frame", return_value="frame.jpg"),
+        patch("talk_to_your_video.ingestion.pipeline.analyze_frame", return_value="a car"),
+        patch("talk_to_your_video.ingestion.pipeline.extract_entities", return_value=extraction),
+        patch("talk_to_your_video.ingestion.pipeline.embed", return_value=[0.1]),
+        patch("talk_to_your_video.ingestion.pipeline.write_video_graph"),
+    ):
+        run_pipeline("video-1", "video.mp4", on_stage=stages.append)
+
+    assert stages == [
+        VideoStatus.TRANSCRIBING,
+        VideoStatus.EXTRACTING,
+        VideoStatus.EMBEDDING,
+        VideoStatus.WRITING_GRAPH,
+        VideoStatus.COMPLETE,
+    ]

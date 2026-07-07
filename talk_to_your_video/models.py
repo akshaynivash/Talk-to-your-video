@@ -20,6 +20,15 @@ class Segment(BaseModel):
     visual_description: str | None = None
 
 
+class SegmentDetail(BaseModel):
+    start: float
+    end: float
+    text: str
+    visual_description: str | None = None
+    entities: list[str]
+    topics: list[str]
+
+
 class Citation(BaseModel):
     start: float
     end: float
