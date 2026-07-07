@@ -5,7 +5,7 @@ Tracks phase completion so a new session can resume without re-deriving context.
 - [x] Phase 0 — Prerequisites (`uv`, `kind` installed)
 - [x] Phase 1 — Repo scaffold + README
 - [~] Phase 2 — docker-compose local dev loop (compose file written, not yet verified end-to-end — Docker Desktop had a WSL bootstrap crash during this session)
-- [ ] Phase 3 — Ingestion pipeline (Celery + Whisper + extraction + Neo4j write)
+- [~] Phase 3 — Ingestion pipeline (real logic implemented + verified manually against real ffmpeg/faster-whisper/Ollama; `graph_write` implemented but not yet verified against a live Neo4j — still blocked on Docker)
 - [ ] Phase 4 — Query agent / LangGraph
 - [ ] Phase 5 — FastAPI layer (full implementation, replacing stubs)
 - [ ] Phase 6 — Containerization (Dockerfiles hardened/finalized)
@@ -22,3 +22,11 @@ Tracks phase completion so a new session can resume without re-deriving context.
 - GitHub repo's default branch is now `main` (fixed — was `feature/ci-cd` due to push order before `main` had commits).
 - Repo has an explicit all-rights-reserved `LICENSE` — public for portfolio visibility, not for reuse.
 - Ongoing convention: land changes via a feature branch + PR into `main`, not direct pushes — `ci.yml` runs lint+test on every PR.
+- **Phase 3 implementation notes:**
+  - `extract_audio` shells out to `ffmpeg` (must be on PATH — not bundled, installed separately on this dev machine via winget `Gyan.FFmpeg`; the worker Docker image already installs it via apt).
+  - `transcribe` uses faster-whisper's `small` model on CPU (`int8` compute type) — verified for real against a synthesized speech clip.
+  - `extract_entities` uses `instructor` patched onto Ollama's OpenAI-compatible endpoint (`{OLLAMA_BASE_URL}/v1`) for validated structured JSON output, with `max_retries=3` handling malformed model output automatically — verified for real against a locally pulled `llama3.1:8b`.
+  - `embed` calls Ollama's native embeddings API with `nomic-embed-text` — verified for real, returns 768-dim vectors (matches the Neo4j vector index config in `002_vector_index.cypher`).
+  - `graph_write` uses `FOREACH` (not a second `UNWIND`) to merge Entity/Topic nodes per segment — avoids an easy-to-miss cartesian-product bug where a second `UNWIND` after the first would re-run once per entity.
+  - All ingestion unit tests (`tests/unit/ingestion/`) mock ffmpeg/Whisper/Ollama/Neo4j — CI never needs real models or a live DB pull, keeping it fast.
+  - Local dev machine now also has `ffmpeg` and Ollama models `llama3.1:8b` + `nomic-embed-text` pulled (in addition to pre-existing `mistral`/`phi`/`llama2`).
