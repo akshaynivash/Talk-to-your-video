@@ -17,3 +17,7 @@ def test_transcribe_maps_whisper_segments_to_models():
     assert result[0].start == 0.0
     assert result[0].end == 2.5
     assert result[0].text == "hello world"
+
+
+def test_transcribe_returns_empty_list_when_no_audio():
+    assert transcribe_module.transcribe(None) == []

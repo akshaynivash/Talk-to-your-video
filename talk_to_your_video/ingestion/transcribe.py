@@ -12,7 +12,10 @@ def _get_model() -> WhisperModel:
     return _model
 
 
-def transcribe(audio_path: str) -> list[Segment]:
+def transcribe(audio_path: str | None) -> list[Segment]:
+    if audio_path is None:
+        return []
+
     model = _get_model()
     segments, _info = model.transcribe(audio_path)
     return [Segment(start=s.start, end=s.end, text=s.text.strip()) for s in segments]

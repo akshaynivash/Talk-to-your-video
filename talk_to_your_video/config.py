@@ -15,8 +15,10 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
     ollama_embedding_model: str = "nomic-embed-text"
+    ollama_vision_model: str = "moondream"
 
     videos_dir: str = "/data/videos"
+    segment_window_seconds: float = 8.0
 
     langchain_tracing_v2: bool = False
     langchain_project: str = "talk-to-your-video"
