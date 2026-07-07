@@ -7,6 +7,12 @@ from talk_to_your_video.agent.nodes.vector_search_tool import run_vector_search
 from talk_to_your_video.agent.state import AgentState
 
 
+def _select_tools(state: AgentState) -> str | list[str]:
+    if state["route"] == "hybrid":
+        return ["graph_lookup", "semantic"]
+    return state["route"]
+
+
 def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("router", route)
@@ -17,11 +23,10 @@ def build_graph():
     graph.set_entry_point("router")
     graph.add_conditional_edges(
         "router",
-        lambda state: state["route"],
+        _select_tools,
         {
             "graph_lookup": "cypher_tool",
             "semantic": "vector_search_tool",
-            "hybrid": "cypher_tool",
         },
     )
     graph.add_edge("cypher_tool", "synthesize")
