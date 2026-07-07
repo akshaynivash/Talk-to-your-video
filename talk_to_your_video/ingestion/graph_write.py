@@ -6,7 +6,10 @@ from talk_to_your_video.models import Segment
 
 _WRITE_SEGMENT_QUERY = """
 MERGE (v:Video {id: $video_id})
-CREATE (s:Segment {start: $start, end: $end, text: $text, embedding: $embedding})
+CREATE (s:Segment {
+  start: $start, end: $end, text: $text,
+  visual_description: $visual_description, embedding: $embedding
+})
 MERGE (v)-[:HAS_SEGMENT]->(s)
 FOREACH (entity_name IN $entities |
   MERGE (e:Entity {name: entity_name})
@@ -32,6 +35,7 @@ def _write_segment(
         start=segment.start,
         end=segment.end,
         text=segment.text,
+        visual_description=segment.visual_description,
         embedding=embedding,
         entities=extraction.entities,
         topics=extraction.topics,

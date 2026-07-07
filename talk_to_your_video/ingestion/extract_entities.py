@@ -22,6 +22,13 @@ class SegmentExtraction(BaseModel):
     topics: list[str]
 
 
+def merge_extractions(a: SegmentExtraction, b: SegmentExtraction) -> SegmentExtraction:
+    return SegmentExtraction(
+        entities=list(dict.fromkeys(a.entities + b.entities)),
+        topics=list(dict.fromkeys(a.topics + b.topics)),
+    )
+
+
 def extract_entities(segment: Segment) -> SegmentExtraction:
     settings = get_settings()
     client = _get_client()

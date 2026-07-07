@@ -17,6 +17,7 @@ class Segment(BaseModel):
     start: float
     end: float
     text: str
+    visual_description: str | None = None
 
 
 class Citation(BaseModel):
