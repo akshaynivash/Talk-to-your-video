@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from talk_to_your_video.ingestion.analyze_frame import analyze_frame
 from talk_to_your_video.ingestion.embed import embed
 from talk_to_your_video.ingestion.extract_audio import extract_audio, get_video_duration
@@ -10,17 +12,27 @@ from talk_to_your_video.ingestion.extract_frame import extract_frame
 from talk_to_your_video.ingestion.graph_write import write_video_graph
 from talk_to_your_video.ingestion.segment import segment
 from talk_to_your_video.ingestion.transcribe import transcribe
-from talk_to_your_video.models import Segment
+from talk_to_your_video.models import Segment, VideoStatus
 
 _EMPTY_EXTRACTION = SegmentExtraction(entities=[], topics=[])
 
 
-def run_pipeline(video_id: str, file_path: str) -> None:
+def run_pipeline(
+    video_id: str,
+    file_path: str,
+    on_stage: Callable[[VideoStatus], None] | None = None,
+) -> None:
+    def stage(status: VideoStatus) -> None:
+        if on_stage is not None:
+            on_stage(status)
+
+    stage(VideoStatus.TRANSCRIBING)
     duration = get_video_duration(file_path)
     audio_path = extract_audio(file_path)
     transcript_segments = transcribe(audio_path)
     segments = segment(transcript_segments, duration)
 
+    stage(VideoStatus.EXTRACTING)
     transcript_extractions = [
         extract_entities(s) if s.text else _EMPTY_EXTRACTION for s in segments
     ]
@@ -40,6 +52,11 @@ def run_pipeline(video_id: str, file_path: str) -> None:
         merge_extractions(t, v)
         for t, v in zip(transcript_extractions, visual_extractions, strict=True)
     ]
+
+    stage(VideoStatus.EMBEDDING)
     embeddings = [embed(f"{s.text} {s.visual_description}".strip()) for s in segments]
 
+    stage(VideoStatus.WRITING_GRAPH)
     write_video_graph(video_id, segments, extractions, embeddings)
+
+    stage(VideoStatus.COMPLETE)
