@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 from talk_to_your_video.ingestion import extract_entities as extract_entities_module
-from talk_to_your_video.ingestion.extract_entities import SegmentExtraction
+from talk_to_your_video.ingestion.extract_entities import (
+    SegmentExtraction,
+    merge_extractions,
+)
 from talk_to_your_video.models import Segment
 
 
@@ -20,3 +23,13 @@ def test_extract_entities_calls_instructor_with_response_model():
     _, kwargs = fake_client.chat.completions.create.call_args
     assert kwargs["response_model"] is SegmentExtraction
     assert kwargs["max_retries"] == 3
+
+
+def test_merge_extractions_dedupes_and_preserves_order():
+    a = SegmentExtraction(entities=["Marie Curie", "Paris"], topics=["radioactivity"])
+    b = SegmentExtraction(entities=["Paris", "Poland"], topics=["radioactivity", "chemistry"])
+
+    merged = merge_extractions(a, b)
+
+    assert merged.entities == ["Marie Curie", "Paris", "Poland"]
+    assert merged.topics == ["radioactivity", "chemistry"]
