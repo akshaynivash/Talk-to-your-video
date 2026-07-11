@@ -1,3 +1,5 @@
+import { AnimatePresence, motion } from "framer-motion";
+import { ListVideo, MessagesSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSegments, postQuery, uploadVideo } from "./api/client";
 import { AppShell } from "./components/AppShell";
@@ -64,31 +66,57 @@ export default function App() {
 
   return (
     <AppShell>
-      {!videoId && (
-        <div className="mx-auto max-w-xl">
-          <UploadDropzone onUpload={handleUpload} disabled={uploading} />
-          {uploadError && <p className="mt-3 text-sm text-red-400">{uploadError}</p>}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {!videoId && (
+          <motion.div
+            key="upload"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mx-auto max-w-xl"
+          >
+            <UploadDropzone onUpload={handleUpload} disabled={uploading} />
+            {uploadError && <p className="mt-3 text-sm text-red-400">{uploadError}</p>}
+          </motion.div>
+        )}
 
-      {videoId && (
-        <div className="flex flex-col gap-6">
-          <ProgressStages status={status} />
+        {videoId && (
+          <motion.div
+            key="workspace"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-col gap-6"
+          >
+            <ProgressStages status={status} />
 
-          {isReady && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <section className="rounded-lg border border-base-700 bg-base-900 p-4">
-                <h2 className="mb-3 text-sm font-medium text-silver-300">Segments</h2>
-                <SegmentTimeline segments={segments} />
-              </section>
-              <section className="flex h-[32rem] flex-col rounded-lg border border-base-700 bg-base-900 p-4">
-                <h2 className="mb-3 text-sm font-medium text-silver-300">Chat</h2>
-                <ChatPanel messages={messages} onSend={handleAsk} isAsking={isAsking} />
-              </section>
-            </div>
-          )}
-        </div>
-      )}
+            {isReady && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.1 }}
+                className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+              >
+                <section className="rounded-xl border border-white/10 bg-base-900/40 p-4 shadow-card backdrop-blur-xl">
+                  <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-silver-300">
+                    <ListVideo size={15} className="text-accent-bright" />
+                    Segments
+                  </h2>
+                  <SegmentTimeline segments={segments} />
+                </section>
+                <section className="flex h-[32rem] flex-col rounded-xl border border-white/10 bg-base-900/40 p-4 shadow-card backdrop-blur-xl">
+                  <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-silver-300">
+                    <MessagesSquare size={15} className="text-accent-bright" />
+                    Chat
+                  </h2>
+                  <ChatPanel messages={messages} onSend={handleAsk} isAsking={isAsking} />
+                </section>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppShell>
   );
 }

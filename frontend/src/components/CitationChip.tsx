@@ -1,3 +1,4 @@
+import { PlayCircle } from "lucide-react";
 import type { Citation } from "../types";
 
 function formatTimestamp(seconds: number): string {
@@ -16,11 +17,12 @@ export function CitationChip({ citation, onClick }: CitationChipProps) {
     <button
       type="button"
       onClick={() => onClick?.(citation)}
-      className="inline-flex items-center gap-1 rounded-full border border-silver-600 bg-base-800
-                 px-2.5 py-1 text-xs text-accent-bright transition-colors duration-150
-                 hover:border-accent hover:bg-base-700"
+      className="inline-flex items-center gap-1 rounded-full border border-base-600 bg-base-900/60
+                 px-2.5 py-1 font-mono text-xs text-accent-bright transition-all duration-150
+                 hover:border-accent-dim hover:bg-accent-dim/10 hover:shadow-glow"
       title={citation.text}
     >
+      <PlayCircle size={12} />
       {formatTimestamp(citation.start)}
     </button>
   );
