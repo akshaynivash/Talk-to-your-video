@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+import { Eye, MessageSquare } from "lucide-react";
 import type { SegmentDetail } from "../types";
 
 function formatTimestamp(seconds: number): string {
@@ -17,25 +19,36 @@ export function SegmentTimeline({ segments, onSeek }: SegmentTimelineProps) {
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-base-700">
-      {segments.map((segment) => (
-        <li
+    <ul className="flex flex-col gap-2">
+      {segments.map((segment, index) => (
+        <motion.li
           key={segment.start}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
           onClick={() => onSeek?.(segment.start)}
-          className="group flex cursor-pointer flex-col gap-2 border-l-2 border-transparent
-                     px-3 py-3 transition-colors duration-150 hover:border-accent hover:bg-base-800"
+          className="group flex cursor-pointer flex-col gap-2 rounded-lg border border-transparent
+                     px-3 py-3 transition-all duration-150 hover:-translate-y-0.5 hover:border-base-600
+                     hover:bg-base-800/80 hover:shadow-card"
         >
-          <div className="flex items-center gap-2 text-xs text-silver-500">
-            <span className="font-mono text-accent-bright">
-              {formatTimestamp(segment.start)}&ndash;{formatTimestamp(segment.end)}
-            </span>
-          </div>
-          {segment.text && <p className="text-sm text-silver-100">{segment.text}</p>}
+          <span className="w-fit rounded-md bg-base-800 px-2 py-0.5 font-mono text-xs text-accent-bright
+                            transition-colors duration-150 group-hover:bg-accent-dim/15">
+            {formatTimestamp(segment.start)}&ndash;{formatTimestamp(segment.end)}
+          </span>
+          {segment.text && (
+            <p className="flex items-start gap-1.5 text-sm text-silver-100">
+              <MessageSquare size={14} className="mt-0.5 shrink-0 text-silver-500" />
+              {segment.text}
+            </p>
+          )}
           {segment.visual_description && (
-            <p className="text-sm italic text-silver-400">{segment.visual_description}</p>
+            <p className="flex items-start gap-1.5 text-sm italic text-silver-400">
+              <Eye size={14} className="mt-0.5 shrink-0 text-silver-500" />
+              {segment.visual_description}
+            </p>
           )}
           {(segment.entities.length > 0 || segment.topics.length > 0) && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 pl-[21px]">
               {segment.entities.map((entity) => (
                 <span
                   key={`e-${entity}`}
@@ -47,14 +60,14 @@ export function SegmentTimeline({ segments, onSeek }: SegmentTimelineProps) {
               {segment.topics.map((topic) => (
                 <span
                   key={`t-${topic}`}
-                  className="rounded-full border border-accent-dim px-2 py-0.5 text-xs text-accent-bright"
+                  className="rounded-full border border-accent-dim/50 px-2 py-0.5 text-xs text-accent-bright"
                 >
                   {topic}
                 </span>
               ))}
             </div>
           )}
-        </li>
+        </motion.li>
       ))}
     </ul>
   );

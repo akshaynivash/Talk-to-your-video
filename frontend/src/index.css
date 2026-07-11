@@ -6,16 +6,36 @@
   color-scheme: dark;
 }
 
+* {
+  scrollbar-color: theme("colors.base.600") transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  @apply bg-base-600 rounded-full;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  @apply bg-silver-600;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  font-family:
-    Inter,
-    system-ui,
-    Avenir,
-    Helvetica,
-    Arial,
-    sans-serif;
-  @apply bg-base-950 text-silver-100;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  @apply bg-base-950 font-sans text-silver-100 antialiased;
+}
+
+::selection {
+  @apply bg-accent-dim/40 text-silver-50;
 }
