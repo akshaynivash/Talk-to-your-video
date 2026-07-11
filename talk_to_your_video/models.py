@@ -29,6 +29,30 @@ class SegmentDetail(BaseModel):
     topics: list[str]
 
 
+class VideoSummary(BaseModel):
+    id: str
+    title: str | None = None
+    status: VideoStatus
+    created_at: str | None = None
+
+
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    type: str
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    type: str
+
+
+class GraphData(BaseModel):
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+
+
 class Citation(BaseModel):
     start: float
     end: float

@@ -4,9 +4,22 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
-from talk_to_your_video.models import VideoStatus
+from talk_to_your_video.models import VideoStatus, VideoSummary
 
 client = TestClient(app)
+
+
+def test_get_videos_returns_list_from_graph():
+    summaries = [
+        VideoSummary(id="video-1", title="My Video", status=VideoStatus.COMPLETE, created_at="x")
+    ]
+    with patch("app.api.routes.ingest.list_videos", return_value=summaries):
+        response = client.get("/videos")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": "video-1", "title": "My Video", "status": "complete", "created_at": "x"}
+    ]
 
 
 def test_upload_video_creates_video_and_enqueues_task(tmp_path):

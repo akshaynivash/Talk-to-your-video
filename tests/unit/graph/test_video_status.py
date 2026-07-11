@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from talk_to_your_video.graph.video_status import (
     create_video,
     get_video_status,
+    list_videos,
     set_video_status,
 )
 from talk_to_your_video.models import VideoStatus
@@ -23,6 +24,7 @@ def test_create_video_sets_queued_status_and_title():
     assert kwargs["video_id"] == "video-1"
     assert kwargs["status"] == VideoStatus.QUEUED.value
     assert kwargs["title"] == "My Video"
+    assert kwargs["created_at"]
 
 
 def test_set_video_status_updates_status():
@@ -63,3 +65,24 @@ def test_get_video_status_returns_none_when_not_found():
         result = get_video_status("video-1")
 
     assert result is None
+
+
+def test_list_videos_returns_summaries_ordered_by_created_at():
+    fake_driver = MagicMock()
+    fake_session = MagicMock()
+    fake_driver.session.return_value.__enter__.return_value = fake_session
+    fake_session.execute_read.return_value = [
+        {
+            "id": "video-1",
+            "title": "My Video",
+            "status": "complete",
+            "created_at": "2026-07-07T12:00:00+00:00",
+        }
+    ]
+
+    with patch("talk_to_your_video.graph.video_status.get_driver", return_value=fake_driver):
+        result = list_videos()
+
+    assert len(result) == 1
+    assert result[0].id == "video-1"
+    assert result[0].status == VideoStatus.COMPLETE

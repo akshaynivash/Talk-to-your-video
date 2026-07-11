@@ -4,11 +4,16 @@ from pathlib import Path
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 
 from talk_to_your_video.config import get_settings
-from talk_to_your_video.graph.video_status import create_video, get_video_status
-from talk_to_your_video.models import VideoStatus
+from talk_to_your_video.graph.video_status import create_video, get_video_status, list_videos
+from talk_to_your_video.models import VideoStatus, VideoSummary
 from worker.pipeline import process_video
 
 router = APIRouter()
+
+
+@router.get("/videos")
+async def get_videos() -> list[VideoSummary]:
+    return list_videos()
 
 
 @router.post("/videos")
