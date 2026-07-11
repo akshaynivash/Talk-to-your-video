@@ -4,7 +4,7 @@ from talk_to_your_video.config import get_settings
 
 _client: ollama.Client | None = None
 
-_PROMPT = "Describe what is happening in this image factually and concisely."
+DEFAULT_PROMPT = "Describe what is happening in this image factually and concisely."
 
 
 def _get_client() -> ollama.Client:
@@ -14,10 +14,10 @@ def _get_client() -> ollama.Client:
     return _client
 
 
-def analyze_frame(frame_path: str) -> str:
+def analyze_frame(frame_path: str, prompt: str = DEFAULT_PROMPT) -> str:
     settings = get_settings()
     response = _get_client().chat(
         model=settings.ollama_vision_model,
-        messages=[{"role": "user", "content": _PROMPT, "images": [frame_path]}],
+        messages=[{"role": "user", "content": prompt, "images": [frame_path]}],
     )
     return response["message"]["content"].strip()

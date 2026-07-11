@@ -5,7 +5,13 @@ from talk_to_your_video.models import VideoStatus, VideoSummary
 
 _CREATE_VIDEO_QUERY = """
 MERGE (v:Video {id: $video_id})
-ON CREATE SET v.status = $status, v.title = $title, v.created_at = $created_at
+ON CREATE SET v.status = $status, v.title = $title, v.created_at = $created_at,
+              v.file_path = $file_path
+"""
+
+_GET_FILE_PATH_QUERY = """
+MATCH (v:Video {id: $video_id})
+RETURN v.file_path AS file_path
 """
 
 _SET_STATUS_QUERY = """
@@ -25,7 +31,7 @@ ORDER BY v.created_at DESC
 """
 
 
-def create_video(video_id: str, title: str | None = None) -> None:
+def create_video(video_id: str, title: str | None = None, file_path: str | None = None) -> None:
     driver = get_driver()
     with driver.session() as session:
         session.execute_write(
@@ -35,6 +41,7 @@ def create_video(video_id: str, title: str | None = None) -> None:
                 status=VideoStatus.QUEUED.value,
                 title=title,
                 created_at=datetime.now(UTC).isoformat(),
+                file_path=file_path,
             )
         )
 
@@ -56,6 +63,17 @@ def get_video_status(video_id: str) -> VideoStatus | None:
     if record is None:
         return None
     return VideoStatus(record["status"])
+
+
+def get_video_file_path(video_id: str) -> str | None:
+    driver = get_driver()
+    with driver.session() as session:
+        record = session.execute_read(
+            lambda tx: tx.run(_GET_FILE_PATH_QUERY, video_id=video_id).single()
+        )
+    if record is None:
+        return None
+    return record["file_path"]
 
 
 def list_videos() -> list[VideoSummary]:

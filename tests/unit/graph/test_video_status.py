@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from talk_to_your_video.graph.video_status import (
     create_video,
+    get_video_file_path,
     get_video_status,
     list_videos,
     set_video_status,
@@ -15,7 +16,7 @@ def test_create_video_sets_queued_status_and_title():
     fake_driver.session.return_value.__enter__.return_value = fake_session
 
     with patch("talk_to_your_video.graph.video_status.get_driver", return_value=fake_driver):
-        create_video("video-1", title="My Video")
+        create_video("video-1", title="My Video", file_path="/data/videos/video-1.mp4")
 
     fn = fake_session.execute_write.call_args.args[0]
     fake_tx = MagicMock()
@@ -25,6 +26,7 @@ def test_create_video_sets_queued_status_and_title():
     assert kwargs["status"] == VideoStatus.QUEUED.value
     assert kwargs["title"] == "My Video"
     assert kwargs["created_at"]
+    assert kwargs["file_path"] == "/data/videos/video-1.mp4"
 
 
 def test_set_video_status_updates_status():
@@ -63,6 +65,30 @@ def test_get_video_status_returns_none_when_not_found():
 
     with patch("talk_to_your_video.graph.video_status.get_driver", return_value=fake_driver):
         result = get_video_status("video-1")
+
+    assert result is None
+
+
+def test_get_video_file_path_returns_path_when_found():
+    fake_driver = MagicMock()
+    fake_session = MagicMock()
+    fake_driver.session.return_value.__enter__.return_value = fake_session
+    fake_session.execute_read.return_value = {"file_path": "/data/videos/video-1.mp4"}
+
+    with patch("talk_to_your_video.graph.video_status.get_driver", return_value=fake_driver):
+        result = get_video_file_path("video-1")
+
+    assert result == "/data/videos/video-1.mp4"
+
+
+def test_get_video_file_path_returns_none_when_not_found():
+    fake_driver = MagicMock()
+    fake_session = MagicMock()
+    fake_driver.session.return_value.__enter__.return_value = fake_session
+    fake_session.execute_read.return_value = None
+
+    with patch("talk_to_your_video.graph.video_status.get_driver", return_value=fake_driver):
+        result = get_video_file_path("video-1")
 
     assert result is None
 

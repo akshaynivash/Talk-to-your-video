@@ -4,6 +4,7 @@ from talk_to_your_video.agent.nodes.cypher_tool import run_cypher
 from talk_to_your_video.agent.nodes.router import route
 from talk_to_your_video.agent.nodes.synthesize import synthesize
 from talk_to_your_video.agent.nodes.vector_search_tool import run_vector_search
+from talk_to_your_video.agent.nodes.visual_inspect_tool import run_visual_inspect
 from talk_to_your_video.agent.state import AgentState
 
 
@@ -18,6 +19,7 @@ def build_graph():
     graph.add_node("router", route)
     graph.add_node("cypher_tool", run_cypher)
     graph.add_node("vector_search_tool", run_vector_search)
+    graph.add_node("visual_inspect_tool", run_visual_inspect)
     graph.add_node("synthesize", synthesize)
 
     graph.set_entry_point("router")
@@ -30,7 +32,8 @@ def build_graph():
         },
     )
     graph.add_edge("cypher_tool", "synthesize")
-    graph.add_edge("vector_search_tool", "synthesize")
+    graph.add_edge("vector_search_tool", "visual_inspect_tool")
+    graph.add_edge("visual_inspect_tool", "synthesize")
     graph.add_edge("synthesize", END)
 
     return graph.compile()

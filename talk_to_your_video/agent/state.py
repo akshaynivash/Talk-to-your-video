@@ -12,5 +12,6 @@ class AgentState(TypedDict):
     cypher_query: str | None
     cypher_results: list[dict]
     vector_results: list[dict]
+    visual_inspection: str | None
     answer: str
     citations: list[Citation]
