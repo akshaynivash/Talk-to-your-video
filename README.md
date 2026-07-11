@@ -2,6 +2,15 @@
 
 Ask natural-language questions about a video and get back answers grounded with exact timestamps — about what's **said** and what's **shown**. Upload a video, it's transcribed *and* visually analyzed frame-by-frame, both feed the same knowledge graph, and a LangGraph agent answers your questions by querying it. Because it understands the video visually, it still works on clips with little or no narration — not just a transcript-Q&A tool.
 
+![Promo preview](docs/media/promo-preview.gif)
+
+*Preview above; full ~26s video (concept, pipeline, knowledge graph, chat) at [`docs/media/promo.mp4`](docs/media/promo.mp4), rendered programmatically with [Remotion](https://www.remotion.dev) — source in [`promo/`](promo/).*
+
+- **Grounded, not generic** — every answer cites the exact timestamp(s) it came from.
+- **Sees, not just hears** — frame-level vision analysis means silent/low-narration clips still work.
+- **Fully local** — Whisper, Ollama, and Neo4j all run on your own machine; no external API costs.
+- **One knowledge graph** — transcript and visual entities merge into the same Neo4j graph, queryable together.
+
 ## Architecture
 
 ```
@@ -66,11 +75,12 @@ talk_to_your_video/   Installable library — the reusable core (pip install -e 
 
 app/       FastAPI service — upload/status/segments/events(SSE)/query/health, calls into talk_to_your_video
 worker/    Celery worker — wraps talk_to_your_video.ingestion.run_pipeline() as a task
-frontend/  React + Vite + Tailwind SPA — upload, live progress, segment timeline, chatbot
+frontend/  React + Vite + Tailwind SPA — upload, live progress, segment timeline, knowledge graph, chatbot
+promo/     Remotion project — programmatic promo video (see promo/README.md)
 charts/    Helm chart for Kubernetes deployment
 scripts/   Dev/deploy helper scripts
 tests/     Unit and integration tests
-docs/      Implementation plan (PLAN.md) and phase progress checklist (PROGRESS.md)
+docs/      Implementation plan (PLAN.md), phase progress checklist (PROGRESS.md), demo media
 ```
 
 Installing just the core (no FastAPI/Celery): `pip install .` gives you `agent`, `graph`, and `ingestion`. Add `.[api]` and/or `.[worker]` extras for the FastAPI/Celery pieces.
@@ -107,7 +117,7 @@ npm run dev
 
 Vite's dev server proxies `/api/*` to the FastAPI backend on `localhost:8000` — see `frontend/vite.config.ts`.
 
-> Local dev loop (docker-compose wiring) not yet verified end-to-end — see `docs/PROGRESS.md` for current status.
+Verified end-to-end (upload → transcribe → visual analysis → graph write → query → chat) against a live Docker Compose stack, via both `curl` and the browser UI.
 
 ## Kubernetes deployment
 
@@ -122,10 +132,6 @@ helm install ttyv charts/talk-to-your-video
 ## Status
 
 This project is under active build-out. See [`docs/PLAN.md`](docs/PLAN.md) for the full phased implementation plan and [`docs/PROGRESS.md`](docs/PROGRESS.md) for what's done so far.
-
-## Demo
-
-_Screenshots / recording placeholder — added once the end-to-end flow is working._
 
 ## License
 
