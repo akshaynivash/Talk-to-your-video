@@ -34,6 +34,7 @@ async def query_video(request: QueryRequest) -> QueryResponse:
         cypher_query=None,
         cypher_results=[],
         vector_results=[],
+        visual_inspection=None,
         answer="",
         citations=[],
     )

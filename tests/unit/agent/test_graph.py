@@ -12,6 +12,7 @@ def _initial_state(route: str) -> AgentState:
         cypher_query=None,
         cypher_results=[],
         vector_results=[],
+        visual_inspection=None,
         answer="",
         citations=[],
     )
@@ -27,6 +28,9 @@ def test_hybrid_route_runs_both_cypher_and_vector_search():
     def fake_vector(state):
         return {"vector_results": [{"from": "vector"}]}
 
+    def fake_visual_inspect(state):
+        return {"visual_inspection": None}
+
     def fake_synthesize(state):
         return {"answer": "done", "citations": []}
 
@@ -34,6 +38,7 @@ def test_hybrid_route_runs_both_cypher_and_vector_search():
         patch("talk_to_your_video.agent.graph.route", fake_route),
         patch("talk_to_your_video.agent.graph.run_cypher", fake_cypher),
         patch("talk_to_your_video.agent.graph.run_vector_search", fake_vector),
+        patch("talk_to_your_video.agent.graph.run_visual_inspect", fake_visual_inspect),
         patch("talk_to_your_video.agent.graph.synthesize", fake_synthesize),
     ):
         graph = build_graph()
@@ -54,6 +59,9 @@ def test_graph_lookup_route_skips_vector_search():
     def fake_vector(state):
         raise AssertionError("vector search should not run for graph_lookup route")
 
+    def fake_visual_inspect(state):
+        raise AssertionError("visual inspect should not run for graph_lookup route")
+
     def fake_synthesize(state):
         return {"answer": "done", "citations": []}
 
@@ -61,6 +69,7 @@ def test_graph_lookup_route_skips_vector_search():
         patch("talk_to_your_video.agent.graph.route", fake_route),
         patch("talk_to_your_video.agent.graph.run_cypher", fake_cypher),
         patch("talk_to_your_video.agent.graph.run_vector_search", fake_vector),
+        patch("talk_to_your_video.agent.graph.run_visual_inspect", fake_visual_inspect),
         patch("talk_to_your_video.agent.graph.synthesize", fake_synthesize),
     ):
         graph = build_graph()

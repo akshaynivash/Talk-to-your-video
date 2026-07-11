@@ -16,6 +16,11 @@ def _format_context(state: AgentState) -> str:
             for r in state["vector_results"]
         )
         parts.append(f"Relevant segments (spoken and visual content):\n{segments}")
+    if state.get("visual_inspection"):
+        parts.append(
+            f"On-demand visual inspection of the most relevant frame, answering this "
+            f"specific question: {state['visual_inspection']}"
+        )
     return "\n\n".join(parts)
 
 

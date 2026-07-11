@@ -45,11 +45,11 @@ def test_upload_video_creates_video_and_enqueues_task(tmp_path):
     assert body["status"] == "queued"
 
     video_id = body["video_id"]
-    m_create.assert_called_once_with(video_id, "My Video")
-
     dest_path = m_process.delay.call_args.args[1]
     assert dest_path.endswith(f"{video_id}.mp4")
     assert (tmp_path / f"{video_id}.mp4").read_bytes() == b"fake video bytes"
+
+    m_create.assert_called_once_with(video_id, "My Video", file_path=dest_path)
 
 
 def test_video_status_returns_404_for_unknown_video():

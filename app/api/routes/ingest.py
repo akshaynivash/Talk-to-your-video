@@ -27,7 +27,7 @@ async def upload_video(file: UploadFile, title: str | None = Form(default=None))
     dest = videos_dir / f"{video_id}{suffix}"
     dest.write_bytes(await file.read())
 
-    create_video(video_id, title)
+    create_video(video_id, title, file_path=str(dest))
     task = process_video.delay(video_id, str(dest))
 
     return {"video_id": video_id, "job_id": task.id, "status": VideoStatus.QUEUED.value}
