@@ -36,6 +36,32 @@ export interface SegmentDetail {
   topics: string[];
 }
 
+export interface VideoSummary {
+  id: string;
+  title: string | null;
+  status: VideoStatus;
+  created_at: string | null;
+}
+
+export type GraphNodeType = "Video" | "Segment" | "Entity" | "Topic";
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: GraphNodeType;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: "HAS_SEGMENT" | "MENTIONS";
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
 export interface Citation {
   start: number;
   end: number;

@@ -1,9 +1,11 @@
 import type {
+  GraphData,
   QueryResponse,
   SegmentDetail,
   StatusResponse,
   UploadResponse,
   VideoStatus,
+  VideoSummary,
 } from "../types";
 
 const API_BASE = "/api";
@@ -38,6 +40,16 @@ export async function getStatus(videoId: string): Promise<StatusResponse> {
 export async function getSegments(videoId: string): Promise<SegmentDetail[]> {
   const response = await fetch(`${API_BASE}/videos/${videoId}/segments`);
   return parseJsonOrThrow<SegmentDetail[]>(response);
+}
+
+export async function listVideos(): Promise<VideoSummary[]> {
+  const response = await fetch(`${API_BASE}/videos`);
+  return parseJsonOrThrow<VideoSummary[]>(response);
+}
+
+export async function getVideoGraph(videoId: string): Promise<GraphData> {
+  const response = await fetch(`${API_BASE}/videos/${videoId}/graph`);
+  return parseJsonOrThrow<GraphData>(response);
 }
 
 export async function postQuery(videoId: string, question: string): Promise<QueryResponse> {
